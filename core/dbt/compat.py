@@ -22,9 +22,11 @@ except NameError:
 if WHICH_PYTHON == 2:
     basestring = basestring
     bigint = long
+    NUMBERS = DECIMALS + (int, float, long)
 else:
     basestring = str
     bigint = int
+    NUMBERS = DECIMALS + (int, float)
 
 if WHICH_PYTHON == 2:
     from SimpleHTTPServer import SimpleHTTPRequestHandler
