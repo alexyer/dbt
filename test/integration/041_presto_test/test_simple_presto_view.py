@@ -43,6 +43,13 @@ class TestBasePrestoRun(DBTIntegrationTest):
 
 
 class TestSimplePrestoRun(TestBasePrestoRun):
+    def setUp(self):
+        super(TestSimplePrestoRun, self).setUp()
+        for conn in self.adapter.connections.in_use.values():
+            if conn.transaction_open:
+                assert conn.handle.transaction is not None
+            else:
+                assert conn.handle.transaction is None
 
     @use_profile('presto')
     def test__presto_simple_run(self):

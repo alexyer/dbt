@@ -44,7 +44,9 @@ class SQLConnectionManager(BaseConnectionManager):
         connection_name = connection.name
 
         if auto_begin and connection.transaction_open is False:
+            assert connection.handle.transaction is None
             self.begin(connection_name)
+            assert connection.handle.transaction is not None
 
         logger.debug('Using {} connection "{}".'
                      .format(self.TYPE, connection_name))
@@ -115,10 +117,12 @@ class SQLConnectionManager(BaseConnectionManager):
             raise dbt.exceptions.InternalException(
                 'Tried to begin a new transaction on connection "{}", but '
                 'it already had one open!'.format(connection.get('name')))
+        assert connection.handle.transaction is None
 
         self.add_begin_query(name)
 
         connection.transaction_open = True
+        assert connection.handle.transaction is not None
         self.in_use[name] = connection
 
         return connection
@@ -134,11 +138,13 @@ class SQLConnectionManager(BaseConnectionManager):
             raise dbt.exceptions.InternalException(
                 'Tried to commit transaction on connection "{}", but '
                 'it does not have one open!'.format(connection.name))
+        assert connection.handle.transaction is not None
 
         logger.debug('On {}: COMMIT'.format(connection.name))
         self.add_commit_query(connection.name)
 
         connection.transaction_open = False
+        assert connection.handle.transaction is None
         self.in_use[connection.name] = connection
 
         return connection

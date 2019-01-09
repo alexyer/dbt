@@ -72,6 +72,10 @@ class PrefetchingCursorWrapper(object):
         return getattr(self.cursor, name)
 
 
+START_TRANSACTION = 'START TRANSACTION READ WRITE, ISOLATION LEVEL {}'
+ISOLATION_LEVEL = 'SERIALIZABLE'
+
+
 class PrestoConnectionManager(SQLConnectionManager):
     TYPE = 'presto'
 
@@ -87,19 +91,15 @@ class PrestoConnectionManager(SQLConnectionManager):
             raise RuntimeException(to_string(exc))
 
     def add_begin_query(self, name):
-        connection = self.get(name)
-        with self.exception_handler('handle.start_transaction()', name):
-            connection.handle.start_transaction()
-
-    def add_commit_query(self, name):
-        connection = self.get(name)
-        with self.exception_handler('handle.commit()', name):
-            connection.handle.commit()
+        sql = START_TRANSACTION.format(ISOLATION_LEVEL)
+        return self.add_query(sql, name, auto_begin=False)
 
     @classmethod
     def open(cls, connection):
         if connection.state == 'open':
             logger.debug('Connection is already open, skipping open.')
+            assert connection.transaction_open is False
+            assert connection.handle.transaction is None
             return connection
 
         credentials = connection.credentials
@@ -123,6 +123,8 @@ class PrestoConnectionManager(SQLConnectionManager):
         )
         connection.state = 'open'
         connection.handle = handle
+        assert connection.transaction_open is False
+        assert connection.handle.transaction is None
         return connection
 
     @classmethod

@@ -48,6 +48,10 @@ class Connection(APIObject):
     def __init__(self, credentials, *args, **kwargs):
         # we can't serialize handles
         self._handle = kwargs.pop('handle')
+        if kwargs['transaction_open']:
+            assert self._handle is not None
+            assert self._handle.transaction is not None
+
         super(Connection, self).__init__(credentials=credentials.serialize(),
                                          *args, **kwargs)
         # this will validate itself in its own __init__.
@@ -67,7 +71,25 @@ class Connection(APIObject):
 
     name = named_property('name', 'The name of this connection')
     state = named_property('state', 'The state of the connection')
-    transaction_open = named_property(
-        'transaction_open',
-        'True if there is an open transaction, False otherwise.'
-    )
+    # transaction_open = named_property(
+    #     'transaction_open',
+    #     'True if there is an open transaction, False otherwise.'
+    # )
+    @property
+    def transaction_open(self):
+        if 'transaction_open' not in self._contents:
+            return None
+        status = self._contents['transaction_open']
+        if status:
+            assert self.handle.transaction is not None
+        elif self.handle is not None:
+            assert self.handle.transaction is None
+        return status
+
+    @transaction_open.setter
+    def transaction_open(self, value):
+        if value or self._handle:
+            assert (self.handle.transaction is not None) == value
+        self._contents['transaction_open'] = value
+        self.validate()
+

@@ -209,7 +209,9 @@ class BaseConnectionManager(object):
     def _release_connection(self, conn):
         if conn.state == 'open':
             if conn.transaction_open is True:
+                assert conn.handle.transaction is not None
                 self._rollback(conn)
+                assert conn.handle.transaction is None
             conn.name = None
         else:
             self.close(conn)
@@ -302,9 +304,12 @@ class BaseConnectionManager(object):
                 'Tried to rollback transaction on connection "{}", but '
                 'it does not have one open!'.format(connection.name))
 
+        assert connection.handle.transaction is not None
+
         logger.debug('On {}: ROLLBACK'.format(connection.name))
         self._rollback_handle(connection)
 
+        assert connection.handle.transaction is None
         connection.transaction_open = False
 
         return connection
@@ -323,6 +328,8 @@ class BaseConnectionManager(object):
             connection.handle.close()
 
         connection.state = 'closed'
+        assert connection.handle.transaction is None
+        connection.transaction_open = False
 
         return connection
 

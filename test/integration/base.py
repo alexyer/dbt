@@ -315,8 +315,7 @@ class DBTIntegrationTest(unittest.TestCase):
         adapter = get_adapter(config)
 
         adapter.cleanup_connections()
-        connection = adapter.acquire_connection('__test')
-        self.adapter_type = connection.type
+        self.adapter_type = adapter.type()
         self.adapter = adapter
         self.config = config
 
